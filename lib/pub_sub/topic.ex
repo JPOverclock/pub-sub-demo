@@ -17,6 +17,10 @@ defmodule PubSub.Topic do
     topic |> GenServer.cast({:publish, message})
   end
 
+  def get_name(topic) do
+    topic |> GenServer.call({:get_name})
+  end
+
   def handle_cast({:subscribe, subscriber}, %{subscribers: subscribers, messages: messages, name: name} = state) do
     subscriber |> send_messages(name, messages)
     {:noreply, %{state | subscribers: [subscriber | subscribers]}}
@@ -27,6 +31,10 @@ defmodule PubSub.Topic do
       |> Task.async_stream(fn(sub) -> send_message(sub, name, message) end)
       |> Enum.to_list()
     {:noreply, %{state | messages: [message | messages]}}
+  end
+
+  def handle_call({:get_name}, _from, %{name: name} = state) do
+    {:reply, name, state}
   end
 
   defp send_messages(subscriber, name, messages) do

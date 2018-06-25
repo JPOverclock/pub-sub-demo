@@ -33,4 +33,22 @@ defmodule PubSub do
   def find_topic(name) when is_atom(name) do
     :global.whereis_name(name)
   end
+
+  def local_topics() do
+    PubSub.Topic.DynamicSupervisor
+    |> DynamicSupervisor.which_children()
+    |> Enum.map(fn(child) -> extract_topic(child) end)
+  end
+
+  defp extract_topic({_, pid, _, _}) do
+    pid |> PubSub.Topic.get_name()
+  end
+
+  def list_topics() do
+    remote_topics =
+      Node.list()
+      |> Enum.flat_map(fn(node) -> :rpc.call(node, __MODULE__, :local_topics, []) end)
+
+    local_topics() ++ remote_topics
+  end
 end
